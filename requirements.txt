@@ -1,5 +1,5 @@
 # Core dependencies for the medical document processing scripts
-PyMuPDF==1.23.8
+PyMuPDF==1.26.0
 pytesseract==0.3.10
 PyPDF2==3.0.1
 google-genai==0.3.2

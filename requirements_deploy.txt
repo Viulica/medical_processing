@@ -1,0 +1,19 @@
+# Deployment-optimized requirements for cloud hosting
+# These versions have pre-compiled wheels available
+
+# Core dependencies
+PyMuPDF>=1.25.0,<1.27.0
+pytesseract>=0.3.10,<0.4.0
+PyPDF2>=3.0.1,<4.0.0
+google-genai>=0.3.2,<1.0.0
+Pillow>=10.0.0,<11.0.0
+numpy>=1.24.0,<2.0.0
+pandas>=2.0.0,<3.0.0
+openpyxl>=3.1.0,<4.0.0
+
+# Streamlit and web app dependencies
+streamlit>=1.28.0,<2.0.0
+watchdog>=3.0.0,<4.0.0
+
+# Additional dependencies
+python-dotenv>=1.0.0,<2.0.0 
