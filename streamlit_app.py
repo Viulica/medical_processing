@@ -204,34 +204,6 @@ def main():
     # Process button
     st.markdown("---")
     
-    # Debug information
-    st.write("**Debug Info:**")
-    st.write(f"Patient file uploaded: {uploaded_patient_file is not None}")
-    st.write(f"Excel file uploaded: {uploaded_excel_file is not None}")
-    
-    # File validation
-    if uploaded_patient_file:
-        try:
-            file_content = uploaded_patient_file.getvalue()
-            file_size_mb = len(file_content) / (1024 * 1024)
-            st.write(f"Patient file size: {file_size_mb:.1f} MB")
-            
-            # Check if file is too large
-            if file_size_mb > 100:
-                st.warning(f"⚠️ Large file detected ({file_size_mb:.1f} MB). This might cause issues.")
-            
-            # Validate PDF header
-            if uploaded_patient_file.name.lower().endswith('.pdf'):
-                if not file_content.startswith(b'%PDF'):
-                    st.error("❌ Invalid PDF file - doesn't start with PDF header")
-                    uploaded_patient_file = None
-                else:
-                    st.success("✅ Valid PDF file detected")
-                    
-        except Exception as e:
-            st.error(f"❌ Error validating patient file: {str(e)}")
-            uploaded_patient_file = None
-    
     # Fallback to session state if uploader is buggy
     if uploaded_patient_file is None and 'patient' in st.session_state.uploaded_files:
         uploaded_patient_file = st.session_state.uploaded_files['patient']
@@ -241,14 +213,7 @@ def main():
         uploaded_excel_file = st.session_state.uploaded_files['excel']
         st.info("📊 Using excel file from session state")
     
-    if uploaded_patient_file:
-        st.write(f"Patient file name: {uploaded_patient_file.name}")
-        st.write(f"Patient file size: {len(uploaded_patient_file.getvalue())} bytes")
-    if uploaded_excel_file:
-        st.write(f"Excel file name: {uploaded_excel_file.name}")
-        st.write(f"Excel file size: {len(uploaded_excel_file.getvalue())} bytes")
-    
-    if st.button("Process Documents", type="primary", use_container_width=True):
+    if st.button("Process Documents", type="primary"):
         if not uploaded_patient_file or not uploaded_excel_file:
             st.error("Please upload both a patient document file and a field definitions file.")
             return
@@ -266,6 +231,17 @@ def main():
             if len(excel_data) == 0:
                 st.error("Excel file appears to be empty. Please try uploading again.")
                 return
+            
+            # Check file size for PDF
+            if uploaded_patient_file.name.lower().endswith('.pdf'):
+                file_size_mb = len(patient_data) / (1024 * 1024)
+                if file_size_mb > 50:
+                    st.warning(f"⚠️ Large PDF detected ({file_size_mb:.1f} MB). This might take longer to process.")
+                
+                # Validate PDF header
+                if not patient_data.startswith(b'%PDF'):
+                    st.error("❌ Invalid PDF file - doesn't start with PDF header")
+                    return
                 
             st.success("✅ Files validated successfully!")
             
