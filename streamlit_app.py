@@ -115,6 +115,10 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 def main():
+    # Initialize session state
+    if 'uploaded_files' not in st.session_state:
+        st.session_state.uploaded_files = {}
+    
     # Header
     st.markdown('<h1 class="main-header">Medical Document Processor</h1>', unsafe_allow_html=True)
     
@@ -134,6 +138,11 @@ def main():
         - **Field Definitions**: XLSX
         - **Output**: CSV
         """)
+        
+        # Add reset button
+        if st.button("🔄 Reset App"):
+            st.session_state.uploaded_files = {}
+            st.rerun()
     
     # Main content area
     col1, col2 = st.columns([1, 1])
@@ -142,15 +151,19 @@ def main():
         st.markdown('<div class="upload-section">', unsafe_allow_html=True)
         st.markdown('<div class="section-header">Upload Patient Documents</div>', unsafe_allow_html=True)
         
+        # Use key to force re-render
         uploaded_patient_file = st.file_uploader(
             "Choose a PDF or ZIP file",
             type=['pdf', 'zip'],
+            key="patient_file_uploader",
             help="Upload a single PDF with multiple patients or a ZIP file containing individual patient PDFs"
         )
         
         if uploaded_patient_file:
             file_size = len(uploaded_patient_file.getvalue()) / (1024 * 1024)  # MB
             st.markdown(f'<div class="file-info">File: {uploaded_patient_file.name} ({file_size:.1f} MB)</div>', unsafe_allow_html=True)
+            # Store in session state
+            st.session_state.uploaded_files['patient'] = uploaded_patient_file
         st.markdown('</div>', unsafe_allow_html=True)
     
     with col2:
@@ -160,11 +173,14 @@ def main():
         uploaded_excel_file = st.file_uploader(
             "Choose an XLSX file",
             type=['xlsx'],
+            key="excel_file_uploader",
             help="Upload the Excel file containing field definitions (e.g., DUN.xlsx)"
         )
         
         if uploaded_excel_file:
             st.markdown(f'<div class="file-info">File: {uploaded_excel_file.name}</div>', unsafe_allow_html=True)
+            # Store in session state
+            st.session_state.uploaded_files['excel'] = uploaded_excel_file
         st.markdown('</div>', unsafe_allow_html=True)
     
     # Process button
@@ -174,6 +190,16 @@ def main():
     st.write("**Debug Info:**")
     st.write(f"Patient file uploaded: {uploaded_patient_file is not None}")
     st.write(f"Excel file uploaded: {uploaded_excel_file is not None}")
+    
+    # Fallback to session state if uploader is buggy
+    if uploaded_patient_file is None and 'patient' in st.session_state.uploaded_files:
+        uploaded_patient_file = st.session_state.uploaded_files['patient']
+        st.info("📁 Using patient file from session state")
+        
+    if uploaded_excel_file is None and 'excel' in st.session_state.uploaded_files:
+        uploaded_excel_file = st.session_state.uploaded_files['excel']
+        st.info("📊 Using excel file from session state")
+    
     if uploaded_patient_file:
         st.write(f"Patient file name: {uploaded_patient_file.name}")
         st.write(f"Patient file size: {len(uploaded_patient_file.getvalue())} bytes")
