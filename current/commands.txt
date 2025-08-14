@@ -1,0 +1,2 @@
+python3 1-split_pdf_by_detections.py
+python3 2-extract_info.py "output" "instructions/DUN.xlsx" 2 14
