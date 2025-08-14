@@ -14,3 +14,4 @@ watchdog==3.0.0
 
 # Additional dependencies that might be needed
 python-dotenv==1.0.0
+psutil==7.0.0

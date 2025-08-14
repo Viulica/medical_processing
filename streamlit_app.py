@@ -7,12 +7,38 @@ from datetime import datetime
 import pandas as pd
 from pathlib import Path
 import sys
+import psutil
+import gc
 
 # Add current directory to path so we can import the existing scripts
 sys.path.append(os.path.join(os.path.dirname(__file__), 'current'))
 
 from utils.file_processor import process_uploaded_files
 from utils.extraction_wrapper import run_extraction_pipeline
+
+# Check for required environment variables
+if 'GOOGLE_API_KEY' not in os.environ:
+    st.error("""
+    ❌ **Missing Google API Key**
+    
+    Please set the `GOOGLE_API_KEY` environment variable in your deployment platform.
+    
+    **How to fix:**
+    1. Go to your deployment platform settings
+    2. Add environment variable: `GOOGLE_API_KEY`
+    3. Set the value to your Google Generative AI API key
+    4. Redeploy your app
+    """)
+    st.stop()
+
+# Resource monitoring
+def check_memory_usage():
+    """Check if we're running low on memory"""
+    memory = psutil.virtual_memory()
+    if memory.percent > 80:
+        st.warning(f"⚠️ High memory usage: {memory.percent}%. Consider restarting the app.")
+        gc.collect()  # Force garbage collection
+    return memory.percent
 
 # Page configuration
 st.set_page_config(
@@ -144,14 +170,49 @@ def main():
     # Process button
     st.markdown("---")
     
+    # Debug information
+    st.write("**Debug Info:**")
+    st.write(f"Patient file uploaded: {uploaded_patient_file is not None}")
+    st.write(f"Excel file uploaded: {uploaded_excel_file is not None}")
+    if uploaded_patient_file:
+        st.write(f"Patient file name: {uploaded_patient_file.name}")
+        st.write(f"Patient file size: {len(uploaded_patient_file.getvalue())} bytes")
+    if uploaded_excel_file:
+        st.write(f"Excel file name: {uploaded_excel_file.name}")
+        st.write(f"Excel file size: {len(uploaded_excel_file.getvalue())} bytes")
+    
     if st.button("Process Documents", type="primary", use_container_width=True):
         if not uploaded_patient_file or not uploaded_excel_file:
             st.error("Please upload both a patient document file and a field definitions file.")
             return
         
+        # Validate uploaded files
+        try:
+            # Test if we can read the files
+            patient_data = uploaded_patient_file.getvalue()
+            excel_data = uploaded_excel_file.getvalue()
+            
+            if len(patient_data) == 0:
+                st.error("Patient file appears to be empty. Please try uploading again.")
+                return
+                
+            if len(excel_data) == 0:
+                st.error("Excel file appears to be empty. Please try uploading again.")
+                return
+                
+            st.success("✅ Files validated successfully!")
+            
+        except Exception as e:
+            st.error(f"Error reading uploaded files: {str(e)}")
+            return
+        
         # Show processing status
         with st.spinner("Processing documents..."):
             try:
+                # Check memory before processing
+                memory_usage = check_memory_usage()
+                st.info(f"Memory usage: {memory_usage}%")
+                
                 # Create progress bar
                 progress_bar = st.progress(0)
                 status_text = st.empty()
@@ -160,16 +221,45 @@ def main():
                 status_text.text("Processing uploaded files...")
                 progress_bar.progress(20)
                 
-                temp_dir, group_name = process_uploaded_files(
-                    uploaded_patient_file, 
-                    uploaded_excel_file
-                )
+                # Add timeout protection
+                import signal
+                
+                def timeout_handler(signum, frame):
+                    raise TimeoutError("Processing timed out")
+                
+                # Set timeout for file processing (30 seconds)
+                signal.signal(signal.SIGALRM, timeout_handler)
+                signal.alarm(30)
+                
+                try:
+                    temp_dir, group_name = process_uploaded_files(
+                        uploaded_patient_file, 
+                        uploaded_excel_file
+                    )
+                    signal.alarm(0)  # Cancel timeout
+                except TimeoutError:
+                    st.error("❌ File processing timed out. Please try with smaller files.")
+                    return
+                except Exception as e:
+                    st.error(f"❌ Error processing files: {str(e)}")
+                    return
                 
                 # Step 2: Run extraction pipeline
                 status_text.text("Extracting data from documents...")
                 progress_bar.progress(50)
                 
-                output_csv_path = run_extraction_pipeline(temp_dir, group_name)
+                # Set timeout for extraction (5 minutes)
+                signal.alarm(300)
+                
+                try:
+                    output_csv_path = run_extraction_pipeline(temp_dir, group_name)
+                    signal.alarm(0)  # Cancel timeout
+                except TimeoutError:
+                    st.error("❌ Data extraction timed out. Please try with smaller files.")
+                    return
+                except Exception as e:
+                    st.error(f"❌ Error during extraction: {str(e)}")
+                    return
                 
                 # Step 3: Prepare for download
                 status_text.text("Preparing results...")
