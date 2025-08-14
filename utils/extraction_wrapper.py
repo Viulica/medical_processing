@@ -226,7 +226,7 @@ def create_extraction_script(output_folder, instructions_file):
     """
     # Read the original script
     current_dir = os.path.join(os.path.dirname(__file__), '..', 'current')
-    original_script_path = os.path.join(current_dir, "2-extract_info.py")
+    original_script_path = os.path.join(current_dir, "extract_info.py")
     
     with open(original_script_path, 'r') as f:
         original_content = f.read()

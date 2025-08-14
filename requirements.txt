@@ -3,7 +3,7 @@
 # pytesseract==0.3.10  # REMOVED - requires Tesseract installation
 PyPDF2==3.0.1
 pdfplumber==0.10.3  # ADDED - pure Python PDF library
-google-generativeai==0.3.2
+google-generativeai==0.8.5  # UPDATED - latest version
 Pillow==10.1.0
 numpy==1.24.3
 pandas==2.0.3

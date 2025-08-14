@@ -1,18 +1,18 @@
-# Deployment-optimized requirements for cloud hosting
-# Lightweight version without PyMuPDF compilation issues
-
-# Core dependencies - lightweight alternatives only
+# Core dependencies for the medical document processing scripts
+# PyMuPDF>=1.25.0,<1.27.0  # REMOVED - requires compilation
+# pytesseract>=0.3.10,<1.0.0  # REMOVED - requires Tesseract installation
 PyPDF2>=3.0.1,<4.0.0
-google-generativeai>=0.3.2,<1.0.0
-Pillow>=10.0.0,<11.0.0
-numpy>=1.24.0,<2.0.0
-pandas>=2.0.0,<3.0.0
-openpyxl>=3.1.0,<4.0.0
+pdfplumber>=0.10.3,<1.0.0  # ADDED - pure Python PDF library
+google-generativeai>=0.8.5,<1.0.0  # UPDATED - latest version
+Pillow>=10.1.0,<11.0.0
+numpy>=1.24.3,<2.0.0
+pandas>=2.0.3,<3.0.0
+openpyxl>=3.1.2,<4.0.0
 
 # Streamlit and web app dependencies
-streamlit>=1.28.0,<2.0.0
+streamlit>=1.28.1,<2.0.0
 watchdog>=3.0.0,<4.0.0
 
-# Additional dependencies
+# Additional dependencies that might be needed
 python-dotenv>=1.0.0,<2.0.0
 psutil>=5.9.0,<6.0.0 

@@ -111,7 +111,7 @@ def extract_first_n_pages_as_pdf(input_pdf_path, n_pages=2):
         return None
 
 
-def extract_info_from_patient_pdf(client, patient_pdf_path, pdf_filename, extraction_prompt, model="gemini-2.5-pro", max_retries=5):
+def extract_info_from_patient_pdf(model, patient_pdf_path, pdf_filename, extraction_prompt, max_retries=5):
     """Extract patient information from a multi-page patient PDF file."""
     
     for attempt in range(max_retries):
@@ -120,29 +120,29 @@ def extract_info_from_patient_pdf(client, patient_pdf_path, pdf_filename, extrac
                 pdf_data = pdf_file.read()
             
             contents = [
-                types.Content(
-                    role="user",
-                    parts=[
-                        types.Part.from_bytes(
-                            mime_type="application/pdf",
-                            data=pdf_data,
-                        ),
-                        types.Part.from_text(text=extraction_prompt)],
-                )
+                {
+                    "role": "user",
+                    "parts": [
+                        {
+                            "mime_type": "application/pdf",
+                            "data": pdf_data,
+                        },
+                        {
+                            "text": extraction_prompt
+                        }
+                    ]
+                }
             ]
             
-            generate_content_config = types.GenerateContentConfig(
-                response_mime_type="text/plain",
-            )
-
             # Collect the full response with retry on API failures
             full_response = ""
             try:
-                for chunk in client.models.generate_content_stream(
-                    model=model,
-                    contents=contents,
-                    config=generate_content_config,
-                ):
+                response = model.generate_content(
+                    contents,
+                    stream=True
+                )
+                
+                for chunk in response:
                     if chunk.text is not None:
                         full_response += chunk.text
                 
@@ -203,7 +203,7 @@ def extract_info_from_patient_pdf(client, patient_pdf_path, pdf_filename, extrac
 
 def process_single_patient_pdf_task(args):
     """Task function for processing a single patient PDF in a thread."""
-    client, pdf_file_path, extraction_prompt, n_pages = args
+    model, pdf_file_path, extraction_prompt, n_pages = args
     
     pdf_filename = os.path.basename(pdf_file_path)
     
@@ -213,7 +213,7 @@ def process_single_patient_pdf_task(args):
         return pdf_filename, None, temp_patient_pdf
         
     # Extract info from this patient's combined pages
-    response = extract_info_from_patient_pdf(client, temp_patient_pdf, pdf_filename, extraction_prompt)
+    response = extract_info_from_patient_pdf(model, temp_patient_pdf, pdf_filename, extraction_prompt)
     
     return pdf_filename, response, temp_patient_pdf
 
@@ -238,9 +238,10 @@ def process_all_patient_pdfs(input_folder="input", excel_file_path="WPA for test
     fieldnames = [field for field in fieldnames if field not in ['source_file', 'page_number']]
     
     # Initialize Google AI client
-    client = genai.Client(
-        api_key="AIzaSyCrskRv2ajNhc-KqDVv0V8KFl5Bdf5rr7w",
-    )
+    genai.configure(api_key="AIzaSyCrskRv2ajNhc-KqDVv0V8KFl5Bdf5rr7w")
+    
+    # Create model instance
+    model = genai.GenerativeModel('gemini-1.5-flash')
     
     # Find all PDF files in the input folder (both uppercase and lowercase extensions)
     pdf_files = glob.glob(os.path.join(input_folder, "*.pdf")) + glob.glob(os.path.join(input_folder, "*.PDF"))
@@ -260,7 +261,7 @@ def process_all_patient_pdfs(input_folder="input", excel_file_path="WPA for test
         # Prepare tasks for all PDFs
         tasks = []
         for pdf_file in pdf_files:
-            tasks.append((client, pdf_file, extraction_prompt, n_pages))
+            tasks.append((model, pdf_file, extraction_prompt, n_pages))
         
         print(f"\n🚀 Starting concurrent processing of {len(tasks)} patient PDFs...")
         
