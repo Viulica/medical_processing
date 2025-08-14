@@ -1,7 +1,8 @@
 # Core dependencies for the medical document processing scripts
-PyMuPDF==1.26.0
-pytesseract==0.3.10
+# PyMuPDF==1.26.0  # REMOVED - requires compilation
+# pytesseract==0.3.10  # REMOVED - requires Tesseract installation
 PyPDF2==3.0.1
+pdfplumber==0.10.3  # ADDED - pure Python PDF library
 google-generativeai==0.3.2
 Pillow==10.1.0
 numpy==1.24.3

@@ -159,11 +159,29 @@ def main():
             help="Upload a single PDF with multiple patients or a ZIP file containing individual patient PDFs"
         )
         
+        # Alternative upload method for PDFs
+        if uploaded_patient_file is None:
+            st.info("If PDF upload doesn't work, try this alternative:")
+            alt_upload = st.file_uploader(
+                "Alternative PDF upload",
+                type=['pdf', 'zip'],
+                key="alt_patient_uploader",
+                help="Alternative upload method"
+            )
+            if alt_upload:
+                uploaded_patient_file = alt_upload
+                st.success("✅ PDF uploaded via alternative method!")
+        
         if uploaded_patient_file:
-            file_size = len(uploaded_patient_file.getvalue()) / (1024 * 1024)  # MB
-            st.markdown(f'<div class="file-info">File: {uploaded_patient_file.name} ({file_size:.1f} MB)</div>', unsafe_allow_html=True)
-            # Store in session state
-            st.session_state.uploaded_files['patient'] = uploaded_patient_file
+            try:
+                file_size = len(uploaded_patient_file.getvalue()) / (1024 * 1024)  # MB
+                st.markdown(f'<div class="file-info">File: {uploaded_patient_file.name} ({file_size:.1f} MB)</div>', unsafe_allow_html=True)
+                # Store in session state
+                st.session_state.uploaded_files['patient'] = uploaded_patient_file
+                st.success(f"✅ Successfully loaded: {uploaded_patient_file.name}")
+            except Exception as e:
+                st.error(f"❌ Error reading file: {str(e)}")
+                uploaded_patient_file = None
         st.markdown('</div>', unsafe_allow_html=True)
     
     with col2:
@@ -190,6 +208,29 @@ def main():
     st.write("**Debug Info:**")
     st.write(f"Patient file uploaded: {uploaded_patient_file is not None}")
     st.write(f"Excel file uploaded: {uploaded_excel_file is not None}")
+    
+    # File validation
+    if uploaded_patient_file:
+        try:
+            file_content = uploaded_patient_file.getvalue()
+            file_size_mb = len(file_content) / (1024 * 1024)
+            st.write(f"Patient file size: {file_size_mb:.1f} MB")
+            
+            # Check if file is too large
+            if file_size_mb > 100:
+                st.warning(f"⚠️ Large file detected ({file_size_mb:.1f} MB). This might cause issues.")
+            
+            # Validate PDF header
+            if uploaded_patient_file.name.lower().endswith('.pdf'):
+                if not file_content.startswith(b'%PDF'):
+                    st.error("❌ Invalid PDF file - doesn't start with PDF header")
+                    uploaded_patient_file = None
+                else:
+                    st.success("✅ Valid PDF file detected")
+                    
+        except Exception as e:
+            st.error(f"❌ Error validating patient file: {str(e)}")
+            uploaded_patient_file = None
     
     # Fallback to session state if uploader is buggy
     if uploaded_patient_file is None and 'patient' in st.session_state.uploaded_files:
@@ -247,25 +288,12 @@ def main():
                 status_text.text("Processing uploaded files...")
                 progress_bar.progress(20)
                 
-                # Add timeout protection
-                import signal
-                
-                def timeout_handler(signum, frame):
-                    raise TimeoutError("Processing timed out")
-                
-                # Set timeout for file processing (30 seconds)
-                signal.signal(signal.SIGALRM, timeout_handler)
-                signal.alarm(30)
-                
+                # Process files without signal timeout (Streamlit doesn't support it)
                 try:
                     temp_dir, group_name = process_uploaded_files(
                         uploaded_patient_file, 
                         uploaded_excel_file
                     )
-                    signal.alarm(0)  # Cancel timeout
-                except TimeoutError:
-                    st.error("❌ File processing timed out. Please try with smaller files.")
-                    return
                 except Exception as e:
                     st.error(f"❌ Error processing files: {str(e)}")
                     return
@@ -274,15 +302,8 @@ def main():
                 status_text.text("Extracting data from documents...")
                 progress_bar.progress(50)
                 
-                # Set timeout for extraction (5 minutes)
-                signal.alarm(300)
-                
                 try:
                     output_csv_path = run_extraction_pipeline(temp_dir, group_name)
-                    signal.alarm(0)  # Cancel timeout
-                except TimeoutError:
-                    st.error("❌ Data extraction timed out. Please try with smaller files.")
-                    return
                 except Exception as e:
                     st.error(f"❌ Error during extraction: {str(e)}")
                     return
