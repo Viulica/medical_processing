@@ -7,8 +7,8 @@ import sys
 import time
 import random
 import pandas as pd
-import google.genai as genai
-from google.genai import types
+import google.generativeai as genai
+from google.generativeai import types
 from PyPDF2 import PdfReader, PdfWriter
 from field_definitions import get_fieldnames, generate_extraction_prompt
 from concurrent.futures import ThreadPoolExecutor, as_completed
