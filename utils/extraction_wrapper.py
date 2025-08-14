@@ -56,8 +56,8 @@ def run_pdf_splitting(current_dir, temp_dir, group_name):
         # Add current directory to Python path
         sys.path.insert(0, current_dir)
         
-        # Import the lightweight splitting function
-        from current.split_pdf_by_detections_lightweight import split_pdf_by_detections
+        # Import the original OCR-based splitting function
+        from current.split_pdf_by_detections_ocr import split_pdf_by_detections
         
         # Run the splitting
         input_folder = os.path.join(temp_dir, "input")
@@ -205,8 +205,8 @@ import os
 # Add current directory to path
 sys.path.append(os.path.dirname(__file__))
 
-# Import the lightweight splitting script
-from current.split_pdf_by_detections_lightweight import split_pdf_by_detections
+# Import the OCR-based splitting script
+from current.split_pdf_by_detections_ocr import split_pdf_by_detections
 
 # Set up paths
 input_folder = os.path.join("{temp_dir}", "input")

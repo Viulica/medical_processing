@@ -305,6 +305,29 @@ def process_input_folder(input_folder, output_folder, filter_strings, case_sensi
     print(f"Processing complete! Created {total_sections} section PDFs from {len(pdf_files)} input files.")
 
 
+def split_pdf_by_detections(input_folder, output_folder, filter_strings, case_sensitive=False):
+    """
+    Split PDFs in a folder into sections based on detection pages.
+    This function can be called with parameters instead of using configuration variables.
+    """
+    # Validate configuration
+    if not filter_strings:
+        print("Error: filter_strings cannot be empty! Please add at least one filter string.")
+        return
+    
+    # Remove empty strings from filter list
+    filter_strings = [s.strip() for s in filter_strings if s.strip()]
+    if not filter_strings:
+        print("Error: All filter strings are empty! Please add valid filter strings.")
+        return
+    
+    print("PDF Section Splitter (Multi-threaded)")
+    print("=" * 50)
+    
+    # Process input folder
+    process_input_folder(input_folder, output_folder, filter_strings, case_sensitive, PAGE_WORKERS, PDF_WORKERS)
+
+
 def main():
     """Main function that uses the configuration variables."""
     
